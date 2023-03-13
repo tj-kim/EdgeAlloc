@@ -1,24 +1,19 @@
 import numpy as np
-
-import pickle
-import os
-import numpy as np
 import itertools
 import random
+import copy
 
-
-from classes.distributed_utils import *
+# from classes.distributed_utils import *
 
 class User():
 
-    def __init__(self, servers, T, locs, max_dist = 7, threshold_dist = 6, self_weight = 0.5):
-                
-        self.pulls, self.means, self.ucb_idx = np.zeros(num_servers), np.zeros(num_servers), np.zeros(num_servers)
+    def __init__(self, servers, T, locs, max_dist = 7, threshold_dist = 6, lat_dist = 4, self_weight = 0.5):
+        
+        self.num_servers = len(servers)        
+        self.pulls, self.means, self.UCB = np.zeros(self.num_servers + 1), np.zeros(self.num_servers + 1), np.zeros(self.num_servers + 1)
         self.t = int(0)
         self.reward_log = np.zeros(T)
         self.arm_history = np.zeros(T)
-        self.num_servers = len(servers)
-        self.latency_conversion = latency_conversion # converts distance to time 
         
         self.locs = locs
         self.dists = self.get_dists()
@@ -29,10 +24,8 @@ class User():
         self.P_loc = None
         self.gen_MC(max_dist, threshold_dist, self_weight)
         
-        self.loc_dists = None
-        self.loc_lats = None
-        self.loc_thresh = None 
-        self.get_loc2serv_dist()
+        self.dist2_svr = self.get_loc2serv_dist()
+        self.arms_per_loc = self.get_arms_per_loc(lat_dist)
         
     def gen_MC(self, max_dist = 7, threshold_dist = 6, self_weight = 0.5):
         # Creating Markov Transition Probability Matrix 
@@ -90,17 +83,30 @@ class User():
             
         return server_locs
     
-    def get_arms_per_loc(self):
+    def get_arms_per_loc(self, lat_dist):
+        
+        svr_avail = {}
         
         # Get available arms for each markov chain location
+        for i in range(len(self.locs)):
+            candidates = []
+            dists = self.dist2_svr[i]
+            for s in range(len(dists)):
+                dists_s = dists[s]
+                if dists[s] <= lat_dist:
+                    candidates += [s]
+            svr_avail[i] = candidates
+            
+        return svr_avail
     
     def get_loc2serv_dist(self):
         
         # Getting distance from each user location to each server
-        temp_loc_dists = []
+        temp_loc_dists = {}
         
         locs = self.locs
         svr_locs = self.svr_locs
+        idx = 0
         
         for u_loc in locs:
             temp_u_loc = []
@@ -110,22 +116,10 @@ class User():
                 b = np.array(s_loc)
                 temp_u_loc += [np.linalg.norm(a-b)]
             
-            temp_loc_dists += [temp_u_loc]
-            
-        self.loc_dists = temp_loc_dists
-        
-        # changing distance to latency
-        temp_loc_lats = []
-        
-        for u in range(len(locs)):
-            temp_u_lat = []
-            
-            for s in range(len(svr_locs)):
-                temp_u_lat += [temp_loc_dists[u][s] * self.latency_conversion]
-                
-            temp_loc_lats += [temp_u_lat]
-            
-        self.loc_lats = temp_loc_lats
+            temp_loc_dists[idx] = temp_u_loc
+            idx += 1
+                    
+        return temp_loc_dists
         
         # Changing latency to threshold
         temp_loc_thresh = []
@@ -139,53 +133,41 @@ class User():
             temp_loc_thresh += [temp_u_thresh]
          
         self.loc_thresh = temp_loc_thresh
-            
-    def select_arm_closest(self):
-        # Baseline algorithm
-        temp_max = np.array(self.loc_dists[self.usr_place]).min()
-        arm_id = np.random.choice(np.flatnonzero(self.loc_dists[self.usr_place] == temp_max))
-        self.arm_history[self.t] = int(arm_id)
-    
-        return arm_id
+        
     
     def select_arm_random(self):
-        arm_id = np.random.choice(range(self.num_servers))
+        # Amongst the available arms
+        arm_id = np.random.choice(arms_per_loc[self.usr_place])
+        
+        if arm_id is None:
+            arm_id = self.num_servers
+            
         self.arm_history[self.t] = int(arm_id)
         
         return arm_id
     
-    def select_arm_dist(self, server_dists, server_rates): # Assuming linear, dists takes Vs value
+    def select_arm_UCB2(self): 
         
-        prob_lists = np.zeros(self.num_servers)
+        # Filter out unavailable arms
+        UCB = copy.deepcopy(self.UCB)
+        for i in range(self.num_servers): # Exclude dummy server
+            UCB[i] *= (self.arms_per_loc[self.usr_place]*2 - 1)
         
-        for i in range(self.num_servers):
-            
-            lat = self.loc_thresh[self.usr_place][i]
-            
-            if lat > 0:
-                L = server_dists[i]
-                C = server_rates[i]
-                prob_lists[i] = lat * (np.exp(-self.load * C/lat) - np.exp(-(self.load + L) * C/lat))/ (C * L)
-            else:
-                prob_lists[i] = 0
-            
-        arm_id = np.random.choice(np.flatnonzero(prob_lists == prob_lists.max()))
+        arm_id = np.random.choice(np.flatnonzero(UCB == UCB.max()))
         self.arm_history[self.t] = int(arm_id)
         return arm_id
 
+    def receive_reward(self, arm_id, reward):
     
-    def log_reward(self, latency):
+        # Add dummy server to simulate cloud 
+        UCB_temp = np.zeros(self.num_servers + 1)
+        K = self.num_servers
         
-        curr_reward = 0
-        arm_id = int(self.arm_history[self.t])
-        
-        lat_compare = self.loc_thresh[self.usr_place][arm_id]
-        if latency < lat_compare:
-            curr_reward = 1
-
-        self.reward_log[self.t] = curr_reward
-
+        self.means[arm_id] = (self.means[arm_id] * self.pulls[arm_id] + reward) / (self.pulls[arm_id] + 1)
         self.pulls[arm_id] += 1
-        self.t += int(1)
-        
-        return curr_reward
+
+        for k in range(K):
+            UCB_temp[k] = self.means[k] + np.sqrt(2 * np.log(self.t) / self.pulls[k])
+
+        self.UCB = UCB_temp
+    

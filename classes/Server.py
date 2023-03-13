@@ -9,13 +9,13 @@ class Server():
         
     def receive_users(self, usr_list, mu_est_list, coordinate = False):        
     
-    awarded, rewards, overflow_flag = self.serve_users(usr_list)
-    if coordinate:
-        wait_times = coordinate_users(self, mu_est_list, awarded, overflow_flag)
-    else:
-        wait_times = np.zeros(self.mu.shape[0])
-    
-    return awarded, rewards, wait_times
+        awarded, rewards, overflow_flag = self.serve_users(usr_list)
+        if coordinate:
+            wait_times = coordinate_users(self, mu_est_list, awarded, overflow_flag)
+        else:
+            wait_times = np.zeros(self.mu.shape[0])
+
+        return awarded, rewards, wait_times
 
     def serve_users(self, usr_list):
         
