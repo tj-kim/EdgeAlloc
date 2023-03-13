@@ -61,14 +61,7 @@ def play_UCB(UCB, T_ka, rewards_sum, t, mu, x):
     
     return UCB_temp, T_ka, rewards_sum, mu_bar
 
-def update_L_random(U,K, num_select):
-    L = np.zeros([U,K])
-    for u in range(U):
-        idx = np.random.choice(range(K), size=num_select, replace=False, p=None)
-        for i in idx:
-            L[u,i] = 1
-    
-    return L
+
 
 def calculate_obj_val(x, B, C):
     U, K = x.shape
