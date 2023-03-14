@@ -49,38 +49,6 @@ def get_arms_list(Users): # Checked
         arms+= [Users[i].choose_arm()]
     return arms
 
-def sort_server_results(arms_list, Servers, Users):
-
-    reserve_id_dict = {}
-    reserve_max_val_dict = {}
-    reserve_time_dict = {}
-    reward_dict = {}
-    collision_flag_dict = {}
-
-    for s in range(len(Servers)):
-        usr_idxs = np.argwhere(np.array(arms_list) == s).flatten()
-        scales = np.zeros(usr_idxs.shape[0])
-        w_est = np.zeros(usr_idxs.shape[0])
-        stay_times = np.zeros(usr_idxs.shape[0])
-        for u in range(usr_idxs.shape[0]):
-            scales[u] = Users[usr_idxs[u]].reward_scale[Users[usr_idxs[u]].usr_place,s]
-            w_est[u] =  Users[usr_idxs[u]].ucb_present[s]
-            stay_times[u] = Users[usr_idxs[u]].expected_time
-
-        user_list = usr_idxs.tolist()
-        scales_list = scales.tolist()
-        w_est_list = w_est.tolist()
-        stay_times_list = stay_times.tolist()
-
-        s_result = Servers[s].receive_users(user_list, scales_list, w_est_list, stay_times_list, len(Users))
-        reserve_id, reserve_max_val, reserve_time, reward, collision_flag = s_result[0],s_result[1],s_result[2],s_result[3],s_result[4]
-        reserve_id_dict[s] = reserve_id
-        reserve_max_val_dict[s] = reserve_max_val
-        reserve_time_dict[s] = reserve_time
-        reward_dict[s] = reward
-        collision_flag_dict[s] = collision_flag
-    
-    return reserve_id_dict,reserve_max_val_dict ,reserve_time_dict ,reward_dict , collision_flag_dict
 
 
 def update_user_info(Users, arms_list, reserve_id_dict,reserve_max_val_dict ,
