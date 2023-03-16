@@ -7,11 +7,12 @@ import copy
 
 class User():
 
-    def __init__(self, servers, T, locs, max_dist = 7, threshold_dist = 6, lat_dist = 4, self_weight = 0.5):
+    def __init__(self, servers, T, locs, threshold_dist = 6, lat_dist = 4, self_weight = 0.5):
         
         self.num_servers = len(servers)        
-        self.pulls, self.means, self.UCB = np.zeros(self.num_servers + 1), np.zeros(self.num_servers + 1), np.zeros(self.num_servers + 1)
-        self.t = int(0)
+        self.pulls, self.means = np.ones(self.num_servers + 1), np.ones(self.num_servers + 1)
+        self.t = int(self.num_servers)
+        self.UCB = self.update_UCB()
         self.reward_log = np.zeros(T)
         self.arm_history = np.zeros(T)
         
@@ -22,12 +23,12 @@ class User():
         self.usr_place = np.random.randint(len(locs))
         
         self.P_loc = None
-        self.gen_MC(max_dist, threshold_dist, self_weight)
+        self.gen_MC(threshold_dist, self_weight)
         
         self.dist2_svr = self.get_loc2serv_dist()
         self.arms_per_loc = self.get_arms_per_loc(lat_dist)
         
-    def gen_MC(self, max_dist = 7, threshold_dist = 6, self_weight = 0.5):
+    def gen_MC(self, threshold_dist = 6, self_weight = 0.5):
         # Creating Markov Transition Probability Matrix 
         
         P = np.zeros(self.dists.shape)
@@ -151,23 +152,33 @@ class User():
         # Filter out unavailable arms
         UCB = copy.deepcopy(self.UCB)
         for i in range(self.num_servers): # Exclude dummy server
-            UCB[i] *= (self.arms_per_loc[self.usr_place]*2 - 1)
+            if i not in self.arms_per_loc[self.usr_place]:
+                UCB[i] = -1
         
         arm_id = np.random.choice(np.flatnonzero(UCB == UCB.max()))
         self.arm_history[self.t] = int(arm_id)
         return arm_id
 
-    def receive_reward(self, arm_id, reward):
-    
-        # Add dummy server to simulate cloud 
+    def update_UCB(self):
+        
         UCB_temp = np.zeros(self.num_servers + 1)
         K = self.num_servers
         
+        for k in range(K):
+            UCB_temp[k] = self.means[k] + np.sqrt(2 * np.log(self.t) / self.pulls[k])
+            
+        return UCB_temp
+        
+    def receive_reward(self, arm_id, reward):
+    
         self.means[arm_id] = (self.means[arm_id] * self.pulls[arm_id] + reward) / (self.pulls[arm_id] + 1)
         self.pulls[arm_id] += 1
 
-        for k in range(K):
-            UCB_temp[k] = self.means[k] + np.sqrt(2 * np.log(self.t) / self.pulls[k])
-
-        self.UCB = UCB_temp
+        self.UCB = self.update_UCB()
+        
+        return
+        
+    def next_step(self):
+        self.next_loc()
+        self.t += 1
     

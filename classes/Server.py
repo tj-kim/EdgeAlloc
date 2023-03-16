@@ -1,7 +1,9 @@
+import numpy as np
+
 class Server():
     def __init__(self, capacity, s_idx, mu, location):
         
-        self.cap = capacity
+        self.cap = int(capacity)
         self.s_idx = s_idx
         self.location = location
         self.mu = mu
@@ -22,12 +24,13 @@ class Server():
         load = len(usr_list)
         self.load_history += [load]
         
-        overflow_flag = False
+        num_users = self.mu.shape[0]
+        overflow_flag = np.zeros(num_users)
         
         # Select C users at random
-        if load > self.capacity:
+        if load > self.cap:
             select_u = np.random.choice(usr_list, size=self.cap, replace=False)
-            overflow_flag = True
+            overflow_flag = np.ones(num_users)
         else:
             select_u = np.array(usr_list)
             
@@ -35,7 +38,8 @@ class Server():
         awarded = np.zeros(self.mu.shape[0])
         for u in select_u:
             awarded[u] = True
-            rewards[u] = int(np.random.rand() < self.mu[u, s_idx])
+        for u in usr_list:
+            rewards[u] = int(np.random.rand() < self.mu[u, self.s_idx])
         
         return awarded, rewards, overflow_flag
     
