@@ -48,9 +48,7 @@ def dist_receive_rewards(servers, users, lrn_x_dist):
     
     for s in range(len(servers)):
         awarded[:,s], rewards[:,s], overflow_flag[:,s] = servers[s].serve_users(usr_list_dict[s])
-    
-#     pdb.set_trace()
-    
+        
     # Update each user's history based on server response
     for u in range(len(users)):
         arm_id = np.argmax(lrn_x_dist[u])
@@ -58,3 +56,18 @@ def dist_receive_rewards(servers, users, lrn_x_dist):
         users[u].receive_reward(arm_id, reward)
     
     return
+
+def characterize_collision(x,B,C):
+    
+    U, K = x.shape
+    loss_val = 0
+    collision_rate = 0
+    
+    for u in range(U):
+        for k in range(K):
+            denom = 1e-5
+            for u2 in range(U):
+                denom += x[u2,k]
+            collision_rate += (denom/U) * (1 - min(C[k]/denom, 1))
+            loss_val += x[u,k] * B[u,k] * (1 - min(C[k]/denom, 1))
+    return loss_val, collision_rate

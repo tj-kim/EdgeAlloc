@@ -62,7 +62,6 @@ def play_UCB(UCB, T_ka, rewards_sum, t, mu, x):
     return UCB_temp, T_ka, rewards_sum, mu_bar
 
 
-
 def calculate_obj_val(x, B, C):
     U, K = x.shape
     obj_val = 0
