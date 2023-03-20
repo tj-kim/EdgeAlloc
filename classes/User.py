@@ -15,6 +15,7 @@ class User():
         self.UCB = self.update_UCB()
         self.reward_log = np.zeros(T)
         self.arm_history = np.zeros(T)
+        self.wait_times = np.zeros(self.num_servers)
         
         self.locs = locs
         self.dists = self.get_dists()
@@ -152,7 +153,7 @@ class User():
         # Filter out unavailable arms
         UCB = copy.deepcopy(self.UCB)
         for i in range(self.num_servers): # Exclude dummy server
-            if i not in self.arms_per_loc[self.usr_place]:
+            if i not in self.arms_per_loc[self.usr_place] or self.wait_times[i] > 0:
                 UCB[i] = -1
         
         arm_id = np.random.choice(np.flatnonzero(UCB == UCB.max()))
@@ -169,7 +170,7 @@ class User():
             
         return UCB_temp
         
-    def receive_reward(self, arm_id, reward):
+    def receive_reward(self, arm_id, reward, waittime = 0):
     
         self.means[arm_id] = (self.means[arm_id] * self.pulls[arm_id] + reward) / (self.pulls[arm_id] + 1)
         self.pulls[arm_id] += 1
@@ -177,8 +178,12 @@ class User():
         self.UCB = self.update_UCB()
         
         return
+    
         
     def next_step(self):
         self.next_loc()
         self.t += 1
+        
+        self.wait_times -= np.ones_like(self.wait_times)
+        self.wait_times = np.maximum(self.wait_times, 0)
     

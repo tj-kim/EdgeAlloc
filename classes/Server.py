@@ -26,6 +26,7 @@ class Server():
         
         num_users = self.mu.shape[0]
         overflow_flag = np.zeros(num_users)
+        waittimes = np.zeros(num_users)
         
         # Select C users at random
         if load > self.cap:
@@ -41,11 +42,11 @@ class Server():
         for u in usr_list:
             rewards[u] = int(np.random.rand() < self.mu[u, self.s_idx])
         
-        return awarded, rewards, overflow_flag
+        return awarded, rewards, overflow_flag, waittimes
     
-    def coorindate_users(self, mu_est_list, awarded, overflow_flag):
+    def coorindate_users(self, usr_list, move_probs):
         
         # Find lowest n users and ban them for some time
         
         
-        return
+        return awarded, rewards, overflow_flag, waittimes
