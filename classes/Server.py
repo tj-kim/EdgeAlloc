@@ -67,9 +67,9 @@ class Server():
             idx_good = np.argpartition(compare_list, - self.cap)[-self.cap:]
             idx_good_sorted = idx_good[np.argsort(-compare_list[idx_good])]
             
-            p_sub = move_probs[idx_good_sorted]
+            p_sub = np.array(move_probs)[idx_good_sorted]
             waittime = np.ceil((1 - np.prod(p_sub))**(-1))
             
-            waittimes[usr_list[idx_kick_sort]] = waittime
+            waittimes[np.array(usr_list)[idx_kick_sort]] = waittime
         
         return waittimes

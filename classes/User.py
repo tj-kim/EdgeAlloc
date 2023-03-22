@@ -17,6 +17,11 @@ class User():
         self.arm_history = np.zeros(T)
         self.wait_times = np.zeros(self.num_servers)
         
+        # Log purposes
+        self.waittime_count = 0
+        self.waittime_history = np.zeros(T)
+        self.cloud_count = 0
+        
         self.locs = locs
         self.dists = self.get_dists()
         
@@ -174,6 +179,14 @@ class User():
     
         self.means[arm_id] = (self.means[arm_id] * self.pulls[arm_id] + reward) / (self.pulls[arm_id] + 1)
         self.pulls[arm_id] += 1
+        
+        if waittime > 0:
+            self.waittime_count += 1
+            self.waittime_history[self.t] = waittime
+            self.wait_times[arm_id] = waittime
+        
+        if arm_id == self.num_servers:
+            self.cloud_count += 1
 
         self.UCB = self.update_UCB()
         
