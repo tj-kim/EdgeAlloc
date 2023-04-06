@@ -27,7 +27,7 @@ def dist_usr_arms(users):
     
     return lrn_x 
 
-def dist_receive_rewards(servers, users, lrn_x_dist, rsv_flag = False): # add moveprobs and mu_bar
+def dist_receive_rewards(servers, users, lrn_x_dist, rsv_flag = False, wait_scale = 1): # add moveprobs and mu_bar
     # Obtain rewards and update user UCB records from servers
     
     # Per server accept list
@@ -65,7 +65,7 @@ def dist_receive_rewards(servers, users, lrn_x_dist, rsv_flag = False): # add mo
     for u in range(len(users)):
         arm_id = np.argmax(lrn_x_dist[u])
         reward = rewards[u,arm_id]
-        waittime = waittimes[u,arm_id]
+        waittime = int(waittimes[u,arm_id] * wait_scale)
         users[u].receive_reward(arm_id, reward, waittime)
     
     return
