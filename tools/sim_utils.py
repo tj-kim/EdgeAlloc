@@ -27,7 +27,7 @@ def dist_usr_arms(users):
     
     return lrn_x 
 
-def dist_receive_rewards(servers, users, lrn_x_dist, rsv_flag = False, wait_scale = 1): # add moveprobs and mu_bar
+def dist_receive_rewards(servers, users, lrn_x_dist, rsv_flag = False, wait_scale = 1, rsv_dynamic = False): # add moveprobs and mu_bar
     # Obtain rewards and update user UCB records from servers
     
     # Per server accept list
@@ -54,7 +54,7 @@ def dist_receive_rewards(servers, users, lrn_x_dist, rsv_flag = False, wait_scal
     
     for s in range(len(servers)):
         awarded[:,s], rewards[:,s], overflow_flag[:,s], waittimes[:,s] = servers[s].serve_users(usr_list_dict[s],
-            mu_bar = mubar_list_dict[s], move_probs = prob_list_dict[s], rsv_flag = rsv_flag)
+            mu_bar = mubar_list_dict[s], move_probs = prob_list_dict[s], rsv_flag = rsv_flag, rsv_dynamic = True)
         
     awarded = np.append(awarded, np.zeros([len(users),1]), axis = 1)
     rewards = np.append(rewards, np.zeros([len(users),1]), axis = 1)
