@@ -3,13 +3,14 @@ import pdb
 
 
 class Server():
-    def __init__(self, capacity, s_idx, mu, location):
+    def __init__(self, capacity, s_idx, mu, location, rsv_ceiling = 50):
         
         self.cap = int(capacity)
         self.s_idx = s_idx
         self.location = location
         self.mu = mu
         self.load_history = []
+        self.rsv_ceiling = rsv_ceiling
         
     def receive_users(self, usr_list, mu_est_list, coordinate = False):        
     
@@ -93,28 +94,34 @@ class Server():
                 compare_list[i] = mu_bar[i] # * move_probs[i]
             
             # decide who to ban 
-            idx_kick = np.argpartition(compare_list, num_kick)[:num_kick]
-            idx_kick_sort = idx_kick[np.argsort(compare_list[idx_kick])]
+#             idx_kick = np.argpartition(compare_list, num_kick)[:num_kick]
+#             idx_kick_sort = idx_kick[np.argsort(compare_list[idx_kick])]
+            
+            idx_kick = np.argsort(compare_list)[:len(compare_list) - self.cap]
+            idx_kick_sort = idx_kick[np.argsort(-compare_list[idx_kick])].astype(int)
             
             # decide on how long to ban
             idx_good = np.argpartition(compare_list, - self.cap)[-self.cap:]
             idx_good_sorted = idx_good[np.argsort(-compare_list[idx_good])]
             
-            pdb.set_trace()
-            
             p_sub = np.array(move_probs)[idx_good_sorted]
             from_svr = (1 - np.prod(p_sub))
             
             p_sub_queue = np.array(move_probs)[idx_kick_sort]
-            A = 0
+#             A = 0
             
+#             pdb.set_trace()
+            
+            uk_idx = 0
             for uk in idx_kick_sort:
+                from_queue = (np.prod(1 - p_sub_queue[:uk_idx]))
+                from_outside = (1 - (1-mu_bar[uk])*(num_users - self.cap - uk_idx)/num_svrs)
+                prod = from_svr * from_queue * from_outside
                 
-                from_queue = (np.prod(1 - p_sub_queue[:uk]))
-                from_outside = (1 - (1-mu_bar[uk]) (num_users - C - A)/num_svrs)
-                waittimes[np.array(usr_list)[uk]] = (from_svr * from_queue * from_outside)**(-1)
+                waittimes[np.array(usr_list)[uk]] = min((prod)**(-1), self.rsv_ceiling)
                 
-                A += 1
+#                 A += 1
+                uk_idx += 1
             
         
         return waittimes
