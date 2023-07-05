@@ -115,7 +115,8 @@ class Server():
             uk_idx = 0
             for uk in idx_kick_sort:
                 from_queue = (np.prod(1 - p_sub_queue[:uk_idx]))
-                from_outside = (1 - (1-mu_bar[uk])*(num_users - self.cap - uk_idx)/num_svrs)
+#                 from_outside = (1 - (1-mu_bar[uk])*(num_users - self.cap - uk_idx)/num_svrs)
+                from_outside = 1
                 prod = from_svr * from_queue * from_outside
                 
                 waittimes[np.array(usr_list)[uk]] = min((prod)**(-1), self.rsv_ceiling)
